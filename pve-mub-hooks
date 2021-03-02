@@ -1,0 +1,178 @@
+#!/bin/bash
+
+# the ID of this virtual machine
+vmid="$1"
+
+# the execution phase to hook into
+phase="$2"
+
+# hookscript configuration for this virtual machine
+hookconf="$vmid.hookconf"
+
+# the PID of this virtual machine's main process
+main_pid="$(< /run/qemu-server/$vmid.pid)"
+
+# internal sleep timer in seconds
+sleep=5
+
+# generic header for output messages
+header_generic="[VM $vmid] :"
+
+# function execution deferral flags
+defer_hook_assign_interrupts=0
+defer_hook_cpu_pin=0
+defer_hook_set_scheduler_policy=0
+
+# function for assigning interrupts from passed-through PCI devices to selected host core(s)
+hook_assign_interrupts() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local pinning thread(s) from attached device interrupt(s) to host core(s)  [ $cputaskset ]"
+  echo "$header_local waiting  $sleep  second(s) to accommodate all passed through device(s) . . ."
+  sleep ${sleep}s
+
+  # the PCI device IDs of any device(s) passed through to this virtual machine, from any hostpciX lines in its conf file
+  pci_devs="$(grep hostpci $vmid.conf | cut -d ":" -f 2- | cut -d "," -f 1 | while read -r c; do echo "$c "; done;)"
+  for device in $pci_devs; do
+    echo "$header_local pinning interrupt(s) for PCI device  [ $device ]  to host core(s)  [ $cputaskset ]"
+    grep $device /proc/interrupts | cut -d ":" -f 1 | while read -r i; do
+      echo "$header_local [$device] : pinning interrupt  [ $i ]  to host core(s)  [ $cputaskset ]"
+      echo $cputaskset > /proc/irq/$i/smp_affinity_list
+    done;
+  done;
+  echo "$header_local finished with 0 errors"
+}
+
+# function for pinning guest vCPUs to selected host core(s)
+hook_cpu_pin() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local pinning thread(s) for guest vCPUs to host core(s)  [ $cputaskset ]"
+  taskset --cpu-list --all-tasks --pid "$cputaskset" "$main_pid"
+  echo "$header_local finished with 0 errors"
+}
+
+# function for setting the scheduler policy for guest processes (currently only works for setting policy to "fifo"; any other supplied policy will be ignored)
+hook_set_scheduler_policy() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local using policy  [ $schedulerpolicy ]"
+  case "$schedulerpolicy" in
+    "fifo")
+      echo "$header_local waiting  $sleep  second(s) . . ."
+      sleep ${sleep}s
+      chrt -v "--$schedulerpolicy" -a -p 1 "$main_pid"
+      ;;
+    *)
+      echo "$header_local policy  [ $schedulerpolicy ]  is unsupported; doing nothing"
+      ;;
+  esac
+  echo "$header_local finished with 0 errors"
+}
+
+# function for parsing and executing post-start hookscripts
+post_start_hooks() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local parsing  [ $hookconf ]  for relevant option(s)"
+  while read option value extra; do
+    echo "$header_local option  [ $option ]  defined with a value of  [ $value ]"
+    case "$option" in
+      "assigninterrupts:")
+        assigninterrupts=$value
+        if [[ "$assigninterrupts" = "1" ]] && [[ "$defer_hook_assign_interrupts" = "1" ]]; then
+          echo "$header_local processing deferred execution of  [ hook_assign_interrupts() ]"
+          hook_assign_interrupts
+          defer_hook_assign_interrupts=0
+        fi
+        ;;
+      "cpupin:")
+        cpupin=$value
+        if [[ "$cpupin" = "1" ]] && [[ "$defer_hook_cpu_pin" = "1" ]]; then
+          echo "$header_local processing deferred execution of  [ hook_cpu_pin() ]"
+          hook_cpu_pin
+          defer_hook_cpu_pin=0
+        fi
+        ;;
+      "cputaskset:")
+        cputaskset=$value
+        case "$cpupin" in
+          "1")
+            echo "$header_local [ cputaskset ]  defined and  [ cpupin ]  enabled : executing  [ hook_cpu_pin() ]"
+            hook_cpu_pin
+            ;;
+          *)
+            echo "$header_local option  [ cpupin ]  disabled, invalid, or not defined : deferring execution of  [ hook_cpu_pin() ]"
+            defer_hook_cpu_pin=1
+            ;;
+        esac
+        case "$assigninterrupts" in
+          "1")
+            echo "$header_local [ cputaskset ]  defined and  [ assigninterrupts ]  enabled : executing  [ hook_assign_interrupts() ]"
+            hook_assign_interrupts
+            ;;
+          *)
+            echo "$header_local option  [ assigninterrupts ]  disabled, invalid, or not defined : deferring execution of  [ hook_assign_interrupts() ]"
+            defer_hook_assign_interrupts=1
+            ;;
+        esac
+        ;;
+      "haltpollns:")
+        haltpollns=$value
+        echo "$header_local stub for  [ $option ]"
+        ;;
+      "scheduleradjust:")
+        scheduleradjust=$value
+        if [[ "$scheduleradjust" = "1" ]] && [[ "$defer_hook_set_scheduler_policy" = "1" ]]; then
+          echo "$header_local processing deferred execution of  [ hook_set_scheduler_policy() ]"
+          hook_set_scheduler_policy
+          defer_hook_set_scheduler_policy=0
+        fi
+        ;;
+      "schedulerpolicy:")
+        schedulerpolicy=$value
+        case "$scheduleradjust" in
+          "1")
+            echo "$header_local [ schedulerpolicy ]  defined and  [ scheduleradjust ]  enabled : executing  [ hook_set_scheduler_policy() ]"
+            hook_set_scheduler_policy
+            ;;
+          *)
+            echo "$header_local option  [ scheduleradjust ]  disabled, invalid, or not defined : deferring execution of  [ hook_set_scheduler_policy() ]"
+            defer_hook_set_scheduler_policy=1
+            ;;
+        esac
+        ;;
+      *)
+        echo "$header_local option  [ $option ]  is invalid; ignoring"
+        ;;
+    esac
+  done
+  echo "$header_local finished with 0 errors"
+}
+
+# function for parsing and executing pre-start hookscripts
+pre_start_hooks() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local parsing  [ $hookconf ]  for relevant option(s)"
+  echo "$header_local finished with 0 errors"
+}
+
+# function for preliminary parsing of the hookconf file
+parse_hookconf() {
+  local header_local="$header_generic [${FUNCNAME[0]}] :"
+  echo "$header_local using hookscript configuration file  [ $hookconf ]"
+  case "$phase" in
+    "post-start")
+      echo "$header_local VM lifecycle phase  [$phase]  : executing  [ post_start_hooks() ]"
+      post_start_hooks < "/etc/pve/qemu-server/$hookconf"
+      ;;
+    "pre-start")
+      echo "$header_local VM lifecycle phase  [$phase]  : executing  [ pre_start_hooks() ]" 
+      pre_start_hooks < "/etc/pve/qemu-server/$hookconf"
+      ;;
+    *)
+      echo "$header_local fallback stub"
+      ;;
+  esac
+  echo "$header_local finished with 0 errors"
+}
+
+parse_hookconf
+
+exit 0
