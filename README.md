@@ -1,6 +1,9 @@
 # pve-mub
 Proxmox VE multi-user box - configuration and hookscripts for hosting multiple simultaneous virtual machines with hardware passthrough for multiple users
 
+# The Standard Disclaimer™
+pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, without any warranty, express or implied. Notwithstanding provisions in the license, any risk from use of THE SOFTWARE is assumed by the user, and the author and/or owner of THE SOFTWARE is hereby held blameless for any damages or any other liability arising from use of THE SOFTWARE.
+
 # Hardware configuration
 pve-mub is primarily developed for the following hardware configuration:
 - AMD Ryzen 9 3950x (16c/32t)
@@ -12,7 +15,7 @@ pve-mub is primarily developed for the following hardware configuration:
 - 2 x EVGA nVidia GeForce RTX 2060 SUPER
 
 
-Excluding host-reserved resources, this allows a number of end-user virtual machines limited by the number of available GPUs, each configured with:
+This hardware supports a number of end-user virtual machines limited by the number of available GPUs, each configured with:
 - 8 virtual CPUs
 - 24 GB RAM
 - 320 GB system disk
