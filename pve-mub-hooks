@@ -31,7 +31,7 @@ hook_assign_interrupts() {
   sleep ${sleep}s
 
   # the PCI device IDs of any device(s) passed through to this virtual machine, from any hostpciX lines in its conf file
-  pci_devs="$(grep hostpci $vmid.conf | cut -d ":" -f 2- | cut -d "," -f 1 | while read -r c; do echo "$c "; done;)"
+  pci_devs="$(grep hostpci /etc/pve/qemu-server/$vmid.conf | cut -d ":" -f 2- | cut -d "," -f 1 | while read -r c; do echo "$c "; done;)"
   for device in $pci_devs; do
     echo "$header_local pinning interrupt(s) for PCI device  [ $device ]  to host core(s)  [ $cputaskset ]"
     grep $device /proc/interrupts | cut -d ":" -f 1 | while read -r i; do
