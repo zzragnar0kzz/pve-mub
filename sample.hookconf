@@ -1,0 +1,26 @@
+# Sample pve-mub-hooks configuration file
+# Copy this to /etc/pve/qemu-server/VMID.hookconf and edit for hookscript configuration specific to virtual machine VMID.
+
+# Assign device interrupts from PCI devices passed through to this VM, to host cores specified in the cpu task set option.
+# Set to 1 to enable; set to 0 to disable (default)
+assigninterrupts: 0
+
+# Pin guest vCPU threads to host cores specified in the cpu task set option.
+# Set to 1 to enable; set to 0 to disable (default)
+cpupin: 0
+
+# Host cores to use for device interrupt assignment and vCPU pinning.
+# Set to x,y,z to use cores x,y,z; set to a-d to use cores a-d inclusive; combine these into complex sets (e.g. a,b-d,x-z); omit to disable pinning.
+cputaskset: 4-7,20-23
+
+# ** 20210303 NOT YET IMPLEMENTED **
+# 
+haltpollns: 200000
+
+# Adjust the scheduler policy and priority for all threads associated with this VM.
+# Set to 1 to enable; set to 0 to disable (default)
+scheduleradjust: 0
+
+# The scheduler policy to use if adjustment is enabled.
+# Set this to one of: fifo; omit or set to an invalid option to disable adjustment.
+scheduleradjust: other
