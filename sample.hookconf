@@ -1,5 +1,12 @@
-# Sample pve-mub-hooks configuration file
+# Sample mub-hooks configuration file
 # Copy this to /etc/pve/qemu-server/VMID.hookconf and edit for hookscript configuration specific to virtual machine VMID.
+# Set options and their values like so:
+#   <option>: <value>
+# <option> can be chosen from the following valid set:
+#   adjustscheduler  cpuset  haltpollns  pininterrupts  pinprocessors  schedulerpolicy  schedulerpriority
+# Valid options defined below will be successfully parsed during hookscript execution.
+# Invalid options defined below will be ignored.
+# Lines beginning with a '#' will be treated as comments and also ignored.
 
 # Assign device interrupts from PCI devices passed through to this VM, to host cores specified in the cpu task set option.
 # Set to 1 to enable; set to 0 to disable (default)
