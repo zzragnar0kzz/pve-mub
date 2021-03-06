@@ -1,33 +1,51 @@
-# Sample mub-hooks configuration file
+# Sample pve-mub-hooks configuration file
 # Copy this to /etc/pve/qemu-server/VMID.hookconf and edit for hookscript configuration specific to virtual machine VMID.
-# Set options and their values like so:
+# Set options and their values like so, one per line:
 #   <option>: <value>
-# <option> can be chosen from the following valid set:
-#   adjustscheduler  cpuset  haltpollns  pininterrupts  pinprocessors  schedulerpolicy  schedulerpriority
 # Valid options defined below will be successfully parsed during hookscript execution.
 # Invalid options defined below will be ignored.
 # Lines beginning with a '#' will be treated as comments and also ignored.
 
-# Assign device interrupts from PCI devices passed through to this VM, to host cores specified in the cpu task set option.
-# Set to 1 to enable; set to 0 to disable (default)
-assigninterrupts: 0
+# <option> can be chosen from the following valid set:
+#   adjustscheduler   cpuset   haltpollns   pininterrupts   pinprocessors   schedulerpolicy   schedulerpriority
 
-# Pin guest vCPU threads to host cores specified in the cpu task set option.
+# pininterrupts - When this option is enabled and cpuset is defined, pin the device interrupts from any PCI devices
+#   passed through to this VM to the host cores specified in cpuset.
+# If cpuset is not defined, this option will be ignored.
 # Set to 1 to enable; set to 0 to disable (default)
-cpupin: 0
+pininterrupts: 0
 
-# Host cores to use for device interrupt assignment and vCPU pinning.
-# Set to x,y,z to use cores x,y,z; set to a-d to use cores a-d inclusive; combine these into complex sets (e.g. a,b-d,x-z); omit to disable pinning.
-cputaskset: 4-7,20-23
+# pinprocessors - When this option is enabled and cpuset is defined, pin the guest's vCPU threads to the host cores
+#   specified in cpuset.
+# If cpuset is not defined, this option will be ignored.
+# Set to 1 to enable; set to 0 to disable (default)
+pinprocessors: 0
+
+# cpuset - The set of host core(s) to use for device interrupt assignment and vCPU pinning.
+# Set to x,y,z to use cores x,y,z
+# Set to a-d to use cores a-d inclusive
+# Combine the above into complex sets (e.g. a,c-f,x-z)
+# Omit to disable pinning, which will also disable pininterrupts and pinprocessors
+cpuset: 4-7,20-23
 
 # ** 20210303 NOT YET IMPLEMENTED **
 # 
 haltpollns: 200000
 
-# Adjust the scheduler policy and priority for all threads associated with this VM.
+# adjustscheduler - Adjust the scheduler policy and priority for all threads associated with this VM.
+# If this option is invalid or not defined, schedulerpolicy and schedulerpriority will be ignored.
 # Set to 1 to enable; set to 0 to disable (default)
-scheduleradjust: 0
+adjustscheduler: 0
 
-# The scheduler policy to use if adjustment is enabled.
-# Set this to one of: fifo; omit or set to an invalid option to disable adjustment.
-scheduleradjust: other
+# schedulerpolicy - The scheduler policy to use if adjustment is enabled.
+# Set this to one of:
+#   fifo
+# Omit or set to an invalid option to disable adjustment; doing this also disables adjustscheduler.
+schedulerpolicy: fifo
+
+# schedulerpriority - The priority to use for specific scheduler policies
+# This option must be set to an integer in the range 1-99 when schedulerpolicy is set to one of:
+#   fifo
+# If omitted or outside this range, this option will be set to a default of 20.
+# When schedulerpolicy is not one of the above values, this option will be ignored.
+schedulerpriority: 1
