@@ -1,178 +1,174 @@
 #!/bin/bash
 
-# the ID of this virtual machine
-vmid="$1"
+hdr_script="[${0##*/}]"
+[[ -z "$1" ]] && { echo "$hdr_script [!] no VMID supplied; aborting" >&2; exit 1; }
+[[ -z "$2" ]] && { echo "$hdr_script [!] no VM lifecycle phase supplied; aborting" >&2; exit 1; }
 
-# the execution phase to hook into
+regex_vmid='^[0-9]+$'
+[[ $1 =~ $regex_vmid ]] || { echo "$hdr_script [!] VMID  $1  is invalid; aborting" >&2; exit 2; }
+
+vmid="$1"
+hdr_vmid="$hdr_script [VM $vmid]"
+
+[[ -s "/run/qemu-server/$vmid.pid" ]] || { echo "$hdr_vmid [!] there does not appear to be a PID associated with this VM; aborting" >&2; exit 3; }
+vmpid="$(< /run/qemu-server/$vmid.pid)"
+
+hookconf="/etc/pve/qemu-server/$vmid.hookconf"
+[[ -s "$hookconf" ]] || { echo "$hdr_vmid [!] configuration file  $hookconf  is empty or invalid; aborting" >&2; exit 4; }
+
 phase="$2"
 
-# hookscript configuration for this virtual machine
-hookconf="$vmid.hookconf"
-
-# the PID of this virtual machine's main process
-main_pid="$(< /run/qemu-server/$vmid.pid)"
-
-# internal sleep timer in seconds
 sleep=5
 
-# generic header for output messages
-header_generic="[VM $vmid] :"
-
-# function execution deferral flags
-defer_hook_assign_interrupts=0
-defer_hook_cpu_pin=0
-defer_hook_set_scheduler_policy=0
-
-# function for assigning interrupts from passed-through PCI devices to selected host core(s)
-hook_assign_interrupts() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local pinning thread(s) from attached device interrupt(s) to host core(s)  [ $cputaskset ]"
-  echo "$header_local waiting  $sleep  second(s) to accommodate all passed through device(s) . . ."
+hook_pin_interrupts() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local pinning thread(s) from attached device interrupt(s) to host core(s)  [ $cpuset ]"
+  echo "$hdr_local waiting  $sleep  second(s) to accommodate all passed through device(s) . . ."
   sleep ${sleep}s
 
   # the PCI device IDs of any device(s) passed through to this virtual machine, from any hostpciX lines in its conf file
   pci_devs="$(grep hostpci /etc/pve/qemu-server/$vmid.conf | cut -d ":" -f 2- | cut -d "," -f 1 | while read -r c; do echo "$c "; done;)"
   for device in $pci_devs; do
-    echo "$header_local pinning interrupt(s) for PCI device  [ $device ]  to host core(s)  [ $cputaskset ]"
+    echo "$hdr_local pinning interrupt(s) for PCI device  [ $device ]  to host core(s)  [ $cpuset ]"
     grep $device /proc/interrupts | cut -d ":" -f 1 | while read -r i; do
-      echo "$header_local [$device] : pinning interrupt  [ $i ]  to host core(s)  [ $cputaskset ]"
-      echo $cputaskset > /proc/irq/$i/smp_affinity_list
+      echo "$hdr_local [$device] : pinning interrupt  [ $i ]  to host core(s)  [ $cpuset ]"
+      echo $cpuset > /proc/irq/$i/smp_affinity_list
     done;
   done;
-  echo "$header_local finished with 0 errors"
+  echo "$hdr_local finished with 0 errors"
 }
 
-# function for pinning guest vCPUs to selected host core(s)
-hook_cpu_pin() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local pinning thread(s) for guest vCPUs to host core(s)  [ $cputaskset ]"
-  taskset --cpu-list --all-tasks --pid "$cputaskset" "$main_pid"
-  echo "$header_local finished with 0 errors"
+hook_pin_processors() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local pinning thread(s) for guest vCPUs to host core(s)  [ $cpuset ]"
+  taskset --cpu-list --all-tasks --pid "$cpuset" "$vmpid"
+  echo "$hdr_local finished with 0 errors"
 }
 
-# function for setting the scheduler policy for guest processes (currently only works for setting policy to "fifo"; any other supplied policy will be ignored)
-hook_set_scheduler_policy() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local using policy  [ $schedulerpolicy ]"
-  case "$schedulerpolicy" in
-    "fifo")
-      echo "$header_local waiting  $sleep  second(s) . . ."
-      sleep ${sleep}s
-      chrt -v "--$schedulerpolicy" -a -p 1 "$main_pid"
-      ;;
-    *)
-      echo "$header_local policy  [ $schedulerpolicy ]  is unsupported; doing nothing"
-      ;;
-  esac
-  echo "$header_local finished with 0 errors"
+hook_set_haltpollns() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local entry stub"
+  echo "$hdr_local exit stub"
 }
 
-# function for parsing and executing post-start hookscripts
+hook_set_scheduler() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local using policy  $schedulerpolicy  and priority  $schedulerpriority"
+  echo "$hdr_local waiting  $sleep  second(s) . . ."
+  sleep ${sleep}s
+  chrt -v "--$schedulerpolicy" -a -p "$schedulerpriority" "$vmpid"
+  echo "$hdr_local finished with 0 errors"
+}
+
 post_start_hooks() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local parsing  [ $hookconf ]  for relevant option(s)"
-  while read option value extra; do
-    echo "$header_local option  [ $option ]  defined with a value of  [ $value ]"
-    case "$option" in
-      "assigninterrupts:")
-        assigninterrupts=$value
-        if [[ "$assigninterrupts" = "1" ]] && [[ "$defer_hook_assign_interrupts" = "1" ]]; then
-          echo "$header_local processing deferred execution of  [ hook_assign_interrupts() ]"
-          hook_assign_interrupts
-          defer_hook_assign_interrupts=0
-        fi
-        ;;
-      "cpupin:")
-        cpupin=$value
-        if [[ "$cpupin" = "1" ]] && [[ "$defer_hook_cpu_pin" = "1" ]]; then
-          echo "$header_local processing deferred execution of  [ hook_cpu_pin() ]"
-          hook_cpu_pin
-          defer_hook_cpu_pin=0
-        fi
-        ;;
-      "cputaskset:")
-        cputaskset=$value
-        case "$cpupin" in
-          "1")
-            echo "$header_local [ cputaskset ]  defined and  [ cpupin ]  enabled : executing  [ hook_cpu_pin() ]"
-            hook_cpu_pin
-            ;;
-          *)
-            echo "$header_local option  [ cpupin ]  disabled, invalid, or not defined : deferring execution of  [ hook_cpu_pin() ]"
-            defer_hook_cpu_pin=1
-            ;;
-        esac
-        case "$assigninterrupts" in
-          "1")
-            echo "$header_local [ cputaskset ]  defined and  [ assigninterrupts ]  enabled : executing  [ hook_assign_interrupts() ]"
-            hook_assign_interrupts
-            ;;
-          *)
-            echo "$header_local option  [ assigninterrupts ]  disabled, invalid, or not defined : deferring execution of  [ hook_assign_interrupts() ]"
-            defer_hook_assign_interrupts=1
-            ;;
-        esac
-        ;;
-      "haltpollns:")
-        haltpollns=$value
-        echo "$header_local stub for  [ $option ]"
-        ;;
-      "scheduleradjust:")
-        scheduleradjust=$value
-        if [[ "$scheduleradjust" = "1" ]] && [[ "$defer_hook_set_scheduler_policy" = "1" ]]; then
-          echo "$header_local processing deferred execution of  [ hook_set_scheduler_policy() ]"
-          hook_set_scheduler_policy
-          defer_hook_set_scheduler_policy=0
-        fi
-        ;;
-      "schedulerpolicy:")
-        schedulerpolicy=$value
-        case "$scheduleradjust" in
-          "1")
-            echo "$header_local [ schedulerpolicy ]  defined and  [ scheduleradjust ]  enabled : executing  [ hook_set_scheduler_policy() ]"
-            hook_set_scheduler_policy
-            ;;
-          *)
-            echo "$header_local option  [ scheduleradjust ]  disabled, invalid, or not defined : deferring execution of  [ hook_set_scheduler_policy() ]"
-            defer_hook_set_scheduler_policy=1
-            ;;
-        esac
-        ;;
-      *)
-        echo "$header_local option  [ $option ]  is invalid; ignoring"
-        ;;
-    esac
-  done
-  echo "$header_local finished with 0 errors"
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  local executed_hooks=0
+  echo "$hdr_local executing validated hook(s) for this lifecycle phase"
+  [[ $execute_hook_pin_processors -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_pin_processors; }
+  [[ $execute_hook_pin_interrupts -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_pin_interrupts; }
+  [[ $execute_hook_set_scheduler -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_set_scheduler; }
+  [[ $execute_hook_set_haltpollns -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_set_haltpollns; }
+  [[ $executed_hooks -ne $valid_hooks ]] && { echo "$hdr_local [!] the number of executed hook(s)  $executed_hooks   does not equal the number of validated hook(s)  $valid_hooks; aborting" >&2; exit 5; }
+  echo "$hdr_local finished executing  $executed_hooks  hook(s) for this lifecycle phase; exiting"
 }
 
-# function for parsing and executing pre-start hookscripts
 pre_start_hooks() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local parsing  [ $hookconf ]  for relevant option(s)"
-  echo "$header_local finished with 0 errors"
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  local executed_hooks=0
+  echo "$hdr_local executing validated hook(s) for this lifecycle phase"
+  echo "$hdr_local finished executing  $executed_hooks  hook(s) for this lifecycle phase; exiting"
 }
 
-# function for preliminary parsing of the hookconf file
+validate_hookconf() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local validating  $valid_options  parsed option(s)"
+  valid_hooks=0
+
+  if [[ -n "$cpuset" ]]; then 
+    echo "$hdr_local option  cpuset  defined as  $cpuset;  validating associated option(s)"
+    if [[ -n "$pinprocessors" ]] && [[ $pinprocessors -eq 1 ]]; then
+      echo "$hdr_local option  pinprocessors  enabled; marking  hook_pin_processors()  for execution"
+      execute_hook_pin_processors=1
+      ((++valid_hooks))
+    else
+      echo "$hdr_local option  pinprocessors  disabled or not defined; skipping execution of  hook_pin_processors()"
+    fi
+    if [[ -n "$pininterrupts" ]] && [[ $pininterrupts -eq 1 ]]; then
+      echo "$hdr_local option  pininterrupts  enabled; marking  hook_pin_interrupts()  for execution"
+      execute_hook_pin_interrupts=1
+      ((++valid_hooks))
+    else
+      echo "$hdr_local option  pininterrupts  disabled or not defined; skipping execution of  hook_pin_interrupts()"
+    fi
+  else
+    echo "$hdr_local option  cpuset  not defined; skipping execution of  hook_pin_processors()"
+    echo "$hdr_local option  cpuset  not defined; skipping execution of  hook_pin_interrupts()"
+  fi
+
+  if [[ -n "$adjustscheduler" ]] && [[ $adjustscheduler -eq 1 ]]; then
+    echo "$hdr_local option  adjustscheduler  enabled; validating associated option(s)"
+    if [[ -n "$schedulerpolicy" ]]; then
+      case $schedulerpolicy in
+        fifo)
+          echo "$hdr_local option  schedulerpolicy  defined as  $schedulerpolicy;  validating associated option(s)"
+          if [[ -n "$schedulerpriority" ]] && [[ $schedulerpriority -ge 1 ]] && [[ $schedulerpriority -le 99 ]]; then
+            echo "$hdr_local option  schedulerpriority  set to  $schedulerpriority;  marking  hook_set_scheduler()  for execution"
+          else
+            schedulerpriority=20
+            echo "$hdr_local option  schedulerpriority  is outside the valid range of  1-99;  resetting to  $schedulerpriority;  marking  hook_set_scheduler()  for execution"
+          fi
+          execute_hook_set_scheduler=1
+          ((++valid_hooks))
+          ;;
+        *)
+          echo "$hdr_local option  schedulerpolicy  is invalid; skipping  hook_set_scheduler()"
+          ;;
+      esac
+    else
+      echo "$hdr_local option  schedulerpolicy  is not defined; skipping  hook_set_scheduler()"
+    fi
+  else
+    echo "$hdr_local option  adjustscheduler  disabled or not defined; skipping  hook_set_scheduler()"
+  fi
+
+  if [[ -n "$haltpollns" ]] && [[ $haltpollns -ge 0 ]]; then
+    echo "$hdr_local option  haltpollns  set to  $haltpollns;  marking  hook_set_haltpollns()  for execution"
+    execute_hook_set_haltpollns=1
+    ((++valid_hooks))
+  else
+    echo "$hdr_local option  haltpollns  is outside the valid range of  >=0  or is undefined; skipping  hook_set_haltpollns()"
+  fi
+
+  echo "$hdr_local finished validating parsed option(s): preparing to execute  $valid_hooks  validated hook(s) for lifecycle phase  $phase"
+}
+
 parse_hookconf() {
-  local header_local="$header_generic [${FUNCNAME[0]}] :"
-  echo "$header_local using hookscript configuration file  [ $hookconf ]"
-  case "$phase" in
-    "post-start")
-      echo "$header_local VM lifecycle phase  [$phase]  : executing  [ post_start_hooks() ]"
-      post_start_hooks < "/etc/pve/qemu-server/$hookconf"
-      ;;
-    "pre-start")
-      echo "$header_local VM lifecycle phase  [$phase]  : executing  [ pre_start_hooks() ]" 
-      pre_start_hooks < "/etc/pve/qemu-server/$hookconf"
-      ;;
-    *)
-      echo "$header_local fallback stub"
-      ;;
-  esac
-  echo "$header_local finished with 0 errors"
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local parsing configuration file  $hookconf  for valid defined options"
+  local invalid_options=0
+  valid_options=0
+  while IFS=' :' read -r option value; do
+    [[ $option = \#* ]] && continue
+    case $option in
+      adjustscheduler|cpuset|haltpollns|pininterrupts|pinprocessors|schedulerpolicy|schedulerpriority)
+        IFS= read -r "$option" <<< "$value"
+        ((++valid_options))
+        ;;
+      *) ((++invalid_options)) ;;
+    esac
+  done < "$hookconf"
+  echo "$hdr_local finished parsing  $hookconf: identified  $valid_options  valid item(s); ignoring  $invalid_options  invalid item(s)"
 }
 
+echo "$hdr_vmid initialization complete; identifying and validating hook(s) for lifecycle phase  $phase"
 parse_hookconf
+validate_hookconf
 
+case "$phase" in
+  "post-start") post_start_hooks ;;
+  "pre-start") pre_start_hooks ;;
+  *) echo "$hdr_vmid invalid phase fallback stub" ;;
+esac
+
+echo "$hdr_vmid finished executing  $phase  hook(s); exiting"
 exit 0
