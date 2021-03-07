@@ -28,8 +28,9 @@ pinprocessors: 0
 # Omit to disable pinning, which will also disable pininterrupts and pinprocessors
 cpuset: 4-7,20-23
 
-# ** 20210303 NOT YET IMPLEMENTED **
-# 
+# haltpollns - The time, in nanoseconds, that a vcpu will wait and poll looking for new work before the vcpu is halted.
+# For Ryzen 3xxx series, this defaults to 200000.
+# Set to 0 to disable polling.
 haltpollns: 200000
 
 # adjustscheduler - Adjust the scheduler policy and priority for all threads associated with this VM.
