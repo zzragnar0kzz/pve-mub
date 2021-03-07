@@ -48,10 +48,13 @@ This hardware supports a number of simultaneous end-user virtual machines limite
 
 Remaining hardware resources are available to ancilliary virtual machines and services, and to the host.
 
-The PVE host configuration can likely be adapted to other hardware; YMMV with the results. Helpful solicitations regarding other hardware, or any general or specific issues with pve-mub, will be taken under advisement. Unhelpful solicitations of any kind will be summarily ignored.
+The PVE host configuration can likely be adapted to other hardware; YMMV with the results of such endeavors.
 
 # The Standard Disclaimer™
 pve-mub © 2021 Jeff Guziak. All rights reserved.
 
 
-pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, without any warranty, express or implied. Notwithstanding provisions in the license, any risk from use of THE SOFTWARE is assumed by the user, and the author and/or owner of THE SOFTWARE is hereby held blameless for any damages or any other liability arising from use of THE SOFTWARE.
+pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. Notwithstanding any other provisions contained in the license, IN NO EVENT SHALL THE AUTHOR, OWNER, COPYRIGHT HOLDER, AND/OR CONTRIBUTORS BE HELD LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+As determined by the AUTHOR, OWNER, and/or COPYRIGHT HOLDER of THE SOFTWARE at their sole discretion, helpful solicitations of any kind regarding THE SOFTWARE will be given due consideration, and unhelpful solicitations of any kind will be summarily ignored.
