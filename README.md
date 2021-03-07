@@ -22,7 +22,9 @@ Examples in this section will use `123` as the target VM's ID, and `local:/snipp
 - The path to VM configuration files, and thus hookscript configuration files, is currently hardcoded to `/etc/pve/qemu-server`; this needs to be changed.
 
 # Credits
-stub
+- Proxmox forum thread [CPU pinning?](https://forum.proxmox.com/threads/cpu-pinning.67805/); specifically, [this post](https://forum.proxmox.com/threads/cpu-pinning.67805/#post-304715) for inspiration in regards to vCPU pinning and isolating configuration options in a separate file.
+- Proxmox forum thread [How to set Linux scheduling priority of a VM on start?](https://forum.proxmox.com/threads/how-to-set-linux-scheduling-priority-of-a-vm-on-start.47185/) and a [related Reddit thread](https://www.reddit.com/r/Proxmox/comments/9gv8js/how_to_set_linux_scheduling_priority_of_a_vm_on/) for inspiration in regards to scheduler policy/priority and expanding beyond a single hook.
+- [Proxmox VE Helpers](https://github.com/ayufan/pve-helpers) for inspiration in regards to pinning device interrupts and setting the halt poll time.
 
 # Hardware configuration
 pve-mub is primarily developed for the following hardware configuration:
