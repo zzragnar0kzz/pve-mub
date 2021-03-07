@@ -52,7 +52,7 @@ pve-mub supports a number of simultaneous end-user virtual machines limited by t
 
 Remaining hardware resources are available to ancilliary services, and to the host.
 
-The PVE host configuration can likely be adapted to other hardware; YMMV with the results of such endeavors.
+The provided PVE host and/or guest configurations can likely be adapted to other hardware; YMMV with the results of such endeavors.
 
 # The Standard Disclaimer™
 pve-mub © 2021 Jeff Guziak. All rights reserved.
