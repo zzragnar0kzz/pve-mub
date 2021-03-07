@@ -48,5 +48,10 @@ This hardware supports a number of simultaneous end-user virtual machines limite
 
 Remaining hardware resources are available to ancilliary virtual machines and services, and to the host.
 
+The PVE host configuration can likely be adapted to other hardware; YMMV with the results. Helpful solicitations regarding other hardware, or any general or specific issues with pve-mub, will be taken under advisement. Unhelpful solicitations of any kind will be summarily ignored.
+
 # The Standard Disclaimer™
+pve-mub © 2021 Jeff Guziak. All rights reserved.
+
+
 pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, without any warranty, express or implied. Notwithstanding provisions in the license, any risk from use of THE SOFTWARE is assumed by the user, and the author and/or owner of THE SOFTWARE is hereby held blameless for any damages or any other liability arising from use of THE SOFTWARE.
