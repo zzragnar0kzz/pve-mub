@@ -10,60 +10,71 @@ regex_vmid='^[0-9]+$'
 vmid="$1"
 hdr_vmid="$hdr_script [VM $vmid]"
 
-[[ -s "/run/qemu-server/$vmid.pid" ]] || { echo "$hdr_vmid [!] there does not appear to be a PID associated with this VM; aborting" >&2; exit 3; }
-vmpid="$(< /run/qemu-server/$vmid.pid)"
-
 hookconf="/etc/pve/qemu-server/$vmid.hookconf"
-[[ -s "$hookconf" ]] || { echo "$hdr_vmid [!] configuration file  $hookconf  is empty or invalid; aborting" >&2; exit 4; }
+[[ -s "$hookconf" ]] || { echo "$hdr_vmid [!] configuration file  $hookconf  is empty or invalid; aborting" >&2; exit 3; }
 
 phase="$2"
 
-sleep=5
+pause=20
+
+get_vm_pid() {
+  local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  local_errors=0
+  echo "$hdr_local retrieving PID for this VM"
+  local pidfile="/run/qemu-server/$vmid.pid"
+  [[ -s "$pidfile" ]] || { echo "$hdr_local [!] there does not appear to be a PID associated with this VM; aborting" >&2; exit 4; }
+  vmpid="$(< $pidfile)"
+  echo "$hdr_local finished with  $local_errors  errors"
+}
 
 hook_pin_interrupts() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
-  echo "$hdr_local pinning thread(s) from attached device interrupt(s) to host core(s)  [ $cpuset ]"
-  echo "$hdr_local waiting  $sleep  second(s) to accommodate all passed through device(s) . . ."
-  sleep ${sleep}s
+  local_errors=0
+  echo "$hdr_local pinning thread(s) from attached device interrupt(s) to host core(s)  $cpuset"
 
   # the PCI device IDs of any device(s) passed through to this virtual machine, from any hostpciX lines in its conf file
   pci_devs="$(grep hostpci /etc/pve/qemu-server/$vmid.conf | cut -d ":" -f 2- | cut -d "," -f 1 | while read -r c; do echo "$c "; done;)"
   for device in $pci_devs; do
-    echo "$hdr_local pinning interrupt(s) for PCI device  [ $device ]  to host core(s)  [ $cpuset ]"
+    echo "$hdr_local pinning interrupt(s) for PCI(e) device  $device  to host core(s)  $cpuset"
     grep $device /proc/interrupts | cut -d ":" -f 1 | while read -r i; do
-      echo "$hdr_local [$device] : pinning interrupt  [ $i ]  to host core(s)  [ $cpuset ]"
+      echo "$hdr_local [PCI(e) $device] : pinning interrupt  $i  to host core(s)  $cpuset"
       echo $cpuset > /proc/irq/$i/smp_affinity_list
     done;
   done;
-  echo "$hdr_local finished with 0 errors"
+  echo "$hdr_local finished with  $local_errors  errors"
 }
 
 hook_pin_processors() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
-  echo "$hdr_local pinning thread(s) for guest vCPUs to host core(s)  [ $cpuset ]"
+  local_errors=0
+  echo "$hdr_local pinning thread(s) for guest vCPUs to host core(s)  $cpuset"
   taskset --cpu-list --all-tasks --pid "$cpuset" "$vmpid"
-  echo "$hdr_local finished with 0 errors"
+  echo "$hdr_local finished with  $local_errors  errors"
 }
 
 hook_set_haltpollns() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
-  echo "$hdr_local entry stub"
-  echo "$hdr_local exit stub"
+  local_errors=0
+  echo "$hdr_local setting host halt_poll_ns value to  $haltpollns"
+  echo $haltpollns > /sys/module/kvm/parameters/halt_poll_ns
+  echo "$hdr_local finished with  $local_errors  errors"
 }
 
 hook_set_scheduler() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
-  echo "$hdr_local using policy  $schedulerpolicy  and priority  $schedulerpriority"
-  echo "$hdr_local waiting  $sleep  second(s) . . ."
-  sleep ${sleep}s
+  local_errors=0
+  echo "$hdr_local adjusting scheduler : setting policy to  $schedulerpolicy;  setting priority to  $schedulerpriority"
   chrt -v "--$schedulerpolicy" -a -p "$schedulerpriority" "$vmpid"
-  echo "$hdr_local finished with 0 errors"
+  echo "$hdr_local finished with  $local_errors  errors"
 }
 
 post_start_hooks() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
+  echo "$hdr_local preparing validated hook(s) for this lifecycle phase"
+  get_vm_pid
   local executed_hooks=0
-  echo "$hdr_local executing validated hook(s) for this lifecycle phase"
+  echo "$hdr_local waiting  $pause  second(s) to accommodate any passed through device(s) . . ."
+  sleep ${pause}s
   [[ $execute_hook_pin_processors -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_pin_processors; }
   [[ $execute_hook_pin_interrupts -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_pin_interrupts; }
   [[ $execute_hook_set_scheduler -eq 1 ]] && { ((++executed_hooks)); echo "$hdr_local executing  $executed_hooks  of  $valid_hooks  validated hook(s)"; hook_set_scheduler; }
