@@ -31,26 +31,26 @@ pve-mub is primarily developed for the following hardware configuration:
 - AMD Ryzen 9 3950x (16c/32t)
 - Gigabyte x570 Aorus Ultra
 - 128 GB DDR4-3600 RAM (4 x 32 GB)
-- 4 TB NVME SSD in zraid (~ 2 TB usable) for PVE and guest disk images (2 x 2 TB)
+- 4 TB NVMe SSD in zraid (~ 2 TB usable) for PVE and guest disk images (2 x 2 TB)
 - 32 TB SATA HDD in zraid (~ 24 TB usable) for miscellaneous storage (4 x 8 TB)
-- Intel 82580 4-port PCIE network adapter
+- 1 x Intel 82580 4-port PCIe network adapter
 - 2 x EVGA nVidia GeForce RTX 2060 SUPER
 
 
 pve-mub supports a number of simultaneous end-user virtual machines limited by the number of available host GPUs, and further limited by host IOMMU groupings. On the reference hardware, each such VM is configured with:
 - 8 virtual CPUs
-  - use `lscpu -e` to identify physical and matching virtual cores; on the reference hardware, limit cpuset to cores in the same L3 cache group.
+  - use `lscpu -e` to identify physical cores and matching virtual cores, if any. On the reference hardware, limit cpuset to cores in the same L3 cache group for optimal performance; YMMV with other hardware.
 - 24 GB RAM
-  - this value should be at least 2x - 4x the number of virtual CPUs; beyond, memory requirements vary by guest OS.
+  - this value should probably be at least 2x the number of virtual CPUs; memory requirements ultimately vary by guest OS and usage, so adjust accordingly.
 - 320 GB system disk image
-  - instead passthrough a NVME SSD here for improved performance
+  - instead, consider passthrough of an (NVMe) SSD here for improved performance
 - 1 physical network port
 - 1 physical GPU
 - a subset of the host's physical USB ports
-  - the reference hardware has most usable ports spread across two controllers, and each end-user VM has one controller passed through to it; YMMV.
+  - the reference hardware has all built-in and header-supplied ports spread across two USB controllers, and each end-user VM has one such controller passed through to it; YMMV with other hardware.
 
 
-Remaining hardware resources are available to ancilliary virtual machines and services, and to the host.
+Remaining hardware resources are available to ancilliary services, and to the host.
 
 The PVE host configuration can likely be adapted to other hardware; YMMV with the results of such endeavors.
 
