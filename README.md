@@ -24,9 +24,6 @@ Examples in this section will use `123` as the target VM's ID, and `local:/snipp
 # Credits
 stub
 
-# The Standard Disclaimer™
-pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, without any warranty, express or implied. Notwithstanding provisions in the license, any risk from use of THE SOFTWARE is assumed by the user, and the author and/or owner of THE SOFTWARE is hereby held blameless for any damages or any other liability arising from use of THE SOFTWARE.
-
 # Hardware configuration
 pve-mub is primarily developed for the following hardware configuration:
 - AMD Ryzen 9 3950x (16c/32t)
@@ -48,3 +45,6 @@ This hardware supports a number of simultaneous end-user virtual machines limite
 
 
 Remaining hardware resources are available to ancilliary virtual machines and services, and to the host.
+
+# The Standard Disclaimer™
+pve-mub (hereafter "THE SOFTWARE") is provided AS-IS, without any warranty, express or implied. Notwithstanding provisions in the license, any risk from use of THE SOFTWARE is assumed by the user, and the author and/or owner of THE SOFTWARE is hereby held blameless for any damages or any other liability arising from use of THE SOFTWARE.
