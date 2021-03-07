@@ -7,7 +7,8 @@ stub
 - Post-start:
   - Pin guest vCPUs to a set of specific host cores
   - Pin interrupts from any PCI devices which have been passed through to a guest to a set of specific host cores
-  - Limited ability to adjust the scheduler policy and priority of host threads associated with a guest
+  - Limited ability to adjust the host scheduler's policy and priority values for threads associated with a guest
+  - Define or disable the host's halt poll period
 ### Installation
 1. The current version of the hookscript is located [here](https://github.com/zzragnar0kzz/pve-mub/blob/main/pve-mub-hooks). Download it using your preferred method, and place it in the PVE host's local storage, for example `/var/lib/vz`, or a subfolder therein.
 2. Verify that the execute bit is set on the hookscript file; you may need to set this manually.
