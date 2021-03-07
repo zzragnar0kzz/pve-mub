@@ -31,8 +31,8 @@ pve-mub is primarily developed for the following hardware configuration:
 - AMD Ryzen 9 3950x (16c/32t)
 - Gigabyte x570 Aorus Ultra
 - 128 GB DDR4-3600 RAM (4 x 32 GB)
-- 4 TB NVMe SSD in zraid (~ 2 TB usable) for PVE and guest disk images (2 x 2 TB)
-- 32 TB SATA HDD in zraid (~ 24 TB usable) for miscellaneous storage (4 x 8 TB)
+- 4 TB NVMe SSD in zraid (2 x 2 TB; ~ 2 TB usable) for PVE and guest disk images
+- 32 TB SATA HDD in zraid (4 x 8 TB; ~ 24 TB usable) for miscellaneous storage
 - 1 x Intel 82580 4-port PCIe network adapter
 - 2 x EVGA nVidia GeForce RTX 2060 SUPER
 
