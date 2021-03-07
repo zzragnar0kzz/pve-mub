@@ -1,22 +1,33 @@
 #!/bin/bash
 
+# generic script output header
 hdr_script="[${0##*/}]"
+
+# abort if either the VMID or lifecycle phase is not defined
 [[ -z "$1" ]] && { echo "$hdr_script [!] no VMID supplied; aborting" >&2; exit 1; }
 [[ -z "$2" ]] && { echo "$hdr_script [!] no VM lifecycle phase supplied; aborting" >&2; exit 1; }
 
+# abort if the supplied VMID does not match the defined regex pattern
 regex_vmid='^[0-9]+$'
 [[ $1 =~ $regex_vmid ]] || { echo "$hdr_script [!] VMID  $1  is invalid; aborting" >&2; exit 2; }
 
+# store the supplied VMID
 vmid="$1"
+
+# VMID-confirmed script output header
 hdr_vmid="$hdr_script [VM $vmid]"
 
+# abort if the hookscript configuration file for VMID is empty or invalid
 hookconf="/etc/pve/qemu-server/$vmid.hookconf"
 [[ -s "$hookconf" ]] || { echo "$hdr_vmid [!] configuration file  $hookconf  is empty or invalid; aborting" >&2; exit 3; }
 
+# store the supplied VM lifecycle phase
 phase="$2"
 
+# sleep value
 pause=20
 
+# retrieve the main PID for this VM
 get_vm_pid() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local_errors=0
@@ -27,6 +38,7 @@ get_vm_pid() {
   echo "$hdr_local finished with  $local_errors  errors"
 }
 
+# pin passed through PCI(e) device interrupts to specified host core(s)
 hook_pin_interrupts() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local_errors=0
@@ -44,6 +56,7 @@ hook_pin_interrupts() {
   echo "$hdr_local finished with  $local_errors  errors"
 }
 
+# pin guest vCPU processes to specified host core(s)
 hook_pin_processors() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local_errors=0
@@ -52,6 +65,7 @@ hook_pin_processors() {
   echo "$hdr_local finished with  $local_errors  errors"
 }
 
+# set the host's halt_poll_ns value
 hook_set_haltpollns() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local_errors=0
@@ -60,6 +74,7 @@ hook_set_haltpollns() {
   echo "$hdr_local finished with  $local_errors  errors"
 }
 
+# adjust scheduler policy and/or priority for guest processes
 hook_set_scheduler() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local_errors=0
@@ -68,6 +83,7 @@ hook_set_scheduler() {
   echo "$hdr_local finished with  $local_errors  errors"
 }
 
+# hooks for the post-start lifecycle phase
 post_start_hooks() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   echo "$hdr_local preparing validated hook(s) for this lifecycle phase"
@@ -83,6 +99,7 @@ post_start_hooks() {
   echo "$hdr_local finished executing  $executed_hooks  hook(s) for this lifecycle phase; exiting"
 }
 
+# hooks for the pre-start lifecycle phase
 pre_start_hooks() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   local executed_hooks=0
@@ -90,6 +107,7 @@ pre_start_hooks() {
   echo "$hdr_local finished executing  $executed_hooks  hook(s) for this lifecycle phase; exiting"
 }
 
+# identify specific hook(s) to execute based on previously parsed valid parameters
 validate_hookconf() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   echo "$hdr_local validating  $valid_options  parsed option(s)"
@@ -153,6 +171,7 @@ validate_hookconf() {
   echo "$hdr_local finished validating parsed option(s): preparing to execute  $valid_hooks  validated hook(s) for lifecycle phase  $phase"
 }
 
+# parse this VM's hookconf file for valid parameters and store their contents, keeping track of both valid and invalid items
 parse_hookconf() {
   local hdr_local="$hdr_vmid [${FUNCNAME[0]}]"
   echo "$hdr_local parsing configuration file  $hookconf  for valid defined options"
@@ -171,6 +190,7 @@ parse_hookconf() {
   echo "$hdr_local finished parsing  $hookconf: identified  $valid_options  valid item(s); ignoring  $invalid_options  invalid item(s)"
 }
 
+# begin script
 echo "$hdr_vmid initialization complete; identifying and validating hook(s) for lifecycle phase  $phase"
 parse_hookconf
 validate_hookconf
