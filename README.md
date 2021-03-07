@@ -1,6 +1,6 @@
 # pve-mub
 Proxmox VE multi-user box - configuration and hookscripts for hosting multiple simultaneous virtual machines with hardware passthrough for multiple users
-## PVE Configuration
+## PVE configuration
 stub
 ## Hookscripts
 `pve-mub-hooks` is a set of hookscripts that perform a variety of actions at various lifecycle phases of a VM, including:
@@ -18,7 +18,7 @@ Examples in this section will use `123` as the target VM's ID, and `local:/snipp
 2. Create a hookscript configuration file for the target VM. This file must have a name matching the target VM's ID, with a `.hookconf` extension. A sample configuration file is located [here](https://github.com/zzragnar0kzz/pve-mub/blob/main/sample.hookconf). Download it using your preferred method, and rename it so that it matches the target VM's ID. Place it in the same location where the target VM's configuration file can be found; for example, if the target VM's configuration file is located at `/etc/pve/qemu-server/123.conf`, then the hookscript configuration file should be located at `/etc/pve/qemu-server/123.hookconf`.
 3. Change settings in the hookscript configuration file as needed for the target VM. A brief description of all valid options can be found in the sample configuration file, with examples of their usage.
 4. Launch the target VM; if it is already running, it may need to be rebooted, or shutdown and restarted, from the host.
-### Known Issues
+### Known issues
 - The path to VM configuration files, and thus hookscript configuration files, is currently hardcoded to `/etc/pve/qemu-server`; this needs to be changed.
 
 # Credits
@@ -26,7 +26,7 @@ Examples in this section will use `123` as the target VM's ID, and `local:/snipp
 - Proxmox forum thread [How to set Linux scheduling priority of a VM on start?](https://forum.proxmox.com/threads/how-to-set-linux-scheduling-priority-of-a-vm-on-start.47185/) and a [related Reddit thread](https://www.reddit.com/r/Proxmox/comments/9gv8js/how_to_set_linux_scheduling_priority_of_a_vm_on/) for inspiration in regards to scheduler policy/priority and expanding beyond a single hook.
 - [Proxmox VE Helpers](https://github.com/ayufan/pve-helpers) for inspiration in regards to pinning device interrupts and setting the halt poll time.
 
-# Hardware configuration
+# Reference hardware
 pve-mub is primarily developed for the following hardware configuration:
 - AMD Ryzen 9 3950x (16c/32t)
 - Gigabyte x570 Aorus Ultra
@@ -37,13 +37,17 @@ pve-mub is primarily developed for the following hardware configuration:
 - 2 x EVGA nVidia GeForce RTX 2060 SUPER
 
 
-This hardware supports a number of simultaneous end-user virtual machines limited by host IOMMU groupings and by the number of available GPUs. Each such VM is configured with:
+pve-mub supports a number of simultaneous end-user virtual machines limited by the number of available host GPUs, and further limited by host IOMMU groupings. On the reference hardware, each such VM is configured with:
 - 8 virtual CPUs
+  - use `lscpu -e` to identify physical and matching virtual cores; on the reference hardware, limit cpuset to cores in the same L3 cache group.
 - 24 GB RAM
+  - this value should be at least 2x - 4x the number of virtual CPUs; beyond, memory requirements vary by guest OS.
 - 320 GB system disk image
+  - instead passthrough a NVME SSD here for improved performance
 - 1 physical network port
 - 1 physical GPU
 - a subset of the host's physical USB ports
+  - the reference hardware has most usable ports spread across two controllers, and each end-user VM has one controller passed through to it; YMMV.
 
 
 Remaining hardware resources are available to ancilliary virtual machines and services, and to the host.
@@ -54,7 +58,7 @@ The PVE host configuration can likely be adapted to other hardware; YMMV with th
 pve-mub © 2021 Jeff Guziak. All rights reserved.
 
 
-pve-mub (hereafter "THE SOFTWARE") is provided under the terms of the [GNU General Public License v3.0](https://github.com/zzragnar0kzz/pve-mub/blob/main/LICENSE).
+pve-mub (hereafter "THE SOFTWARE") is provided under the terms of the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 
 Notwithstanding any provisions contained in the aforementioned license, THE SOFTWARE IS PROVIDED AS-IS, WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES OF ANY KIND, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL THE AUTHOR, OWNER, COPYRIGHT HOLDER, AND/OR CONTRIBUTORS OF THE SOFTWARE BE HELD LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE SOFTWARE.
